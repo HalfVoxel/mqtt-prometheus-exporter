@@ -285,7 +285,7 @@ async fn main() -> anyhow::Result<()> {
     let metrics_http = metrics.clone();
 
     let http_task = task::spawn(async move {
-        let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
+        let addr = SocketAddr::from(([0, 0, 0, 0], 8079));
 
         // We create a TcpListener and bind it
         let listener = TcpListener::bind(addr).await.unwrap();
