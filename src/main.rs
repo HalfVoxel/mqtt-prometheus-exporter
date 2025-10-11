@@ -179,10 +179,10 @@ async fn main() -> anyhow::Result<()> {
         .unwrap()[0..12].to_string();
 
     // Example config: can be replaced with env/config parsing
-    let mqtt_host = env::var("MQTT_HOST").unwrap_or_else(|_| "arongranberg.com".to_string());
+    let mqtt_host = env::var("MQTT_HOST").unwrap_or_else(|_| "localhost".to_string());
     let mqtt_port = env::var("MQTT_PORT").unwrap_or_else(|_| "1883".to_string());
-    let mqtt_user = env::var("MQTT_USER").unwrap_or_else(|_| "wakeup_alarm".to_string());
-    let mqtt_pass = env::var("MQTT_PASS").unwrap_or_else(|_| "xafzz25nomehasff".to_string());
+    let mqtt_user = env::var("MQTT_USER").unwrap_or_else(|_| "".to_string());
+    let mqtt_pass = env::var("MQTT_PASS").unwrap_or_else(|_| "".to_string());
     let topic_patterns: Vec<Topic> = vec![
         TopicBuilder::new()
             .name("device_status")
