@@ -1,0 +1,17 @@
+[package]
+name = "mqtt-exporter"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+regex = "1"
+brevduva = { git = "https://github.com/HalfVoxel/brevduva.git", features = [
+    "pc",
+] }
+tokio = { version = "1.37", features = ["full"] }
+hyper = { version = "^1.7", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+machineid-rs = "^1"
+anyhow = "1.0"
+log = "^0.4"
+env_logger = "^0.11"
