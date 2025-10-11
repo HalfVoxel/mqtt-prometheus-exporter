@@ -1,0 +1,17 @@
+# Ignore build output
+/target
+
+# Ignore editor/project files
+.vscode/
+.idea/
+*.swp
+
+# Ignore test output
+/tests
+
+# Ignore Docker artifacts
+**/.docker/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db

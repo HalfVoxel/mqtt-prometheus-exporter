@@ -150,8 +150,31 @@ impl TopicBuilder {
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
 
+    // Signal handling setup
+    let shutdown = async {
+        #[cfg(unix)]
+        {
+            use tokio::signal::unix::{signal, SignalKind};
+            let mut sigterm = signal(SignalKind::terminate()).expect("Could not register SIGTERM handler");
+            let mut sigint = signal(SignalKind::interrupt()).expect("Could not register SIGINT handler");
+            tokio::select! {
+                _ = sigterm.recv() => {
+                    info!("Received SIGTERM, shutting down.");
+                }
+                _ = sigint.recv() => {
+                    info!("Received SIGINT, shutting down.");
+                }
+            }
+        }
+        #[cfg(not(unix))]
+        {
+            tokio::signal::ctrl_c().await.expect("Failed to install Ctrl+C handler");
+            info!("Received Ctrl+C, shutting down.");
+        }
+    };
+
     let machine_id = machineid_rs::IdBuilder::new(machineid_rs::Encryption::SHA256)
-        .add_component(HWIDComponent::SystemID)
+        .add_component(HWIDComponent::MacAddress)
         .build("somekey")
         .unwrap()[0..12].to_string();
 
@@ -184,7 +207,6 @@ async fn main() -> anyhow::Result<()> {
     // Spawn MQTT listener
     let metrics_mqtt = metrics.clone();
     let mqtt_task = task::spawn(async move {
-        // Connect to MQTT broker using brevduva
         let storage = SyncStorage::new(
             &format!("mqtt-exporter {machine_id}"), // client_id
             &format!("mqtt://{}:{}", mqtt_host, mqtt_port),
@@ -294,8 +316,12 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
-    // Wait for both tasks
-    let _ = tokio::join!(mqtt_task, http_task);
+    // Wait for either signal or tasks
+    tokio::select! {
+        _ = mqtt_task => {},
+        _ = http_task => {},
+        _ = shutdown => {},
+    }
 
     Ok(())
 }
