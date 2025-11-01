@@ -198,8 +198,53 @@ async fn main() -> anyhow::Result<()> {
             .name("alarm_is_user_in_bed")
             .pattern("alarm/<device_type> <device_id>/is_user_in_bed")
             .value_fn(|s| if s.parse::<bool>()? { Ok(1.0) } else { Ok(0.0) })
-            .build()?
+            .build()?,
+        TopicBuilder::new()
+            .name("light_channel_0")
+            .pattern("light/<device_type> <device_id>/rgba_actual")
+            .value_fn(|s| serde_json::from_str::<Option<[u32; 4]>>(s).map(|opt| {
+                if let Some(arr) = opt {
+                    Ok(arr[0] as f64)
+                } else {
+                    Ok(0.0)
+                }
+            })?)
+            .build()?,
+        TopicBuilder::new()
+            .name("light_channel_1")
+            .pattern("light/<device_type> <device_id>/rgba_actual")
+            .value_fn(|s| serde_json::from_str::<Option<[u32; 4]>>(s).map(|opt| {
+                if let Some(arr) = opt {
+                    Ok(arr[1] as f64)
+                } else {
+                    Ok(0.0)
+                }
+            })?)
+            .build()?,
+        TopicBuilder::new()
+            .name("light_channel_2")
+            .pattern("light/<device_type> <device_id>/rgba_actual")
+            .value_fn(|s| serde_json::from_str::<Option<[u32; 4]>>(s).map(|opt| {
+                if let Some(arr) = opt {
+                    Ok(arr[2] as f64)
+                } else {
+                    Ok(0.0)
+                }
+            })?)
+            .build()?,
+        TopicBuilder::new()
+            .name("light_channel_3")
+            .pattern("light/<device_type> <device_id>/rgba_actual")
+            .value_fn(|s| serde_json::from_str::<Option<[u32; 4]>>(s).map(|opt| {
+                if let Some(arr) = opt {
+                    Ok(arr[3] as f64)
+                } else {
+                    Ok(0.0)
+                }
+            })?)
+            .build()?,
     ];
+
 
     // Shared metrics map
     let metrics: MetricsMap = Arc::new(Mutex::new(HashMap::new()));
