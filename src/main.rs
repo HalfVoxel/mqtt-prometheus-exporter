@@ -1,3 +1,4 @@
+use core::panic;
 use std::collections::{BTreeMap, HashMap};
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
@@ -262,59 +263,58 @@ async fn main() -> anyhow::Result<()> {
 
         for Topic { name, pattern, value_fn } in topic_patterns {
             let (mqtt_topic, label_positions) = pattern_to_mqtt(&pattern);
-            let channel = storage.add_channel::<String>(&mqtt_topic, SerializationFormat::String).await;
-            if let Ok((_container, mut receiver)) = channel {
-                let metrics_inner = metrics_mqtt.clone();
-                let label_positions = label_positions.clone();
-                info!("Subscribed to topic pattern: {} (MQTT topic: {})", pattern, mqtt_topic);
-                task::spawn(async move {
-                    while let Some(msg) = receiver.recv().await {
-                        let topic_parts: Vec<_> = msg.topic.split('/').collect();
-                        let mut labels = BTreeMap::new();
-                        let mut parse_ok = true;
-                        for (regex, group_names, pos) in &label_positions {
-                            if let Some(val) = topic_parts.get(*pos) {
-                                if let Some(captures) = regex.captures(val) {
-                                    for (i, name) in group_names.iter().enumerate() {
-                                        if let Some(m) = captures.get(i + 1) {
-                                            labels.insert(name.clone(), m.as_str().to_string());
-                                        } else {
-                                            warn!("No match for group {} in value {}", name, val);
-                                            parse_ok = false;
-                                        }
+            let channel = storage.add_channel::<String>(&mqtt_topic, SerializationFormat::String).await?;
+            let (_container, mut receiver) = channel;
+            let metrics_inner = metrics_mqtt.clone();
+            let label_positions = label_positions.clone();
+            info!("Subscribed to topic pattern: {} (MQTT topic: {})", pattern, mqtt_topic);
+            task::spawn(async move {
+                while let Some(msg) = receiver.recv().await {
+                    let topic_parts: Vec<_> = msg.topic.split('/').collect();
+                    let mut labels = BTreeMap::new();
+                    let mut parse_ok = true;
+                    for (regex, group_names, pos) in &label_positions {
+                        if let Some(val) = topic_parts.get(*pos) {
+                            if let Some(captures) = regex.captures(val) {
+                                for (i, name) in group_names.iter().enumerate() {
+                                    if let Some(m) = captures.get(i + 1) {
+                                        labels.insert(name.clone(), m.as_str().to_string());
+                                    } else {
+                                        warn!("No match for group {} in value {}", name, val);
+                                        parse_ok = false;
                                     }
-                                } else {
-                                    warn!("{:?} did not match value '{}' for topic {}", regex, val, msg.topic);
-                                    parse_ok = false;
                                 }
+                            } else {
+                                warn!("{:?} did not match value '{}' for topic {}", regex, val, msg.topic);
+                                parse_ok = false;
                             }
                         }
-
-                        if !parse_ok {
-                            continue;
-                        }
-
-                        let mut metrics_map = metrics_inner.lock().unwrap();
-                        let key = MetricKey { name: name.clone(), labels };
-
-                        if msg.message.is_empty() {
-                            warn!("Clearing {} with labels {:?}", name, key.labels);
-                            metrics_map.remove(&key);
-                            continue;
-                        }
-
-                        let value: f64 = match value_fn(&msg.message) {
-                            Ok(v) => v,
-                            Err(e) => {
-                                warn!("Failed to parse value for {}: {}. Error: {:?}", name, msg.message, e);
-                                continue;
-                            }
-                        };
-                        info!("Received message on {}: {} with labels {:?}", name, value, key.labels);
-                        metrics_map.insert(key, value);
                     }
-                });
-            }
+
+                    if !parse_ok {
+                        continue;
+                    }
+
+                    let mut metrics_map = metrics_inner.lock().unwrap();
+                    let key = MetricKey { name: name.clone(), labels };
+
+                    if msg.message.is_empty() {
+                        warn!("Clearing {} with labels {:?}", name, key.labels);
+                        metrics_map.remove(&key);
+                        continue;
+                    }
+
+                    let value: f64 = match value_fn(&msg.message) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            warn!("Failed to parse value for {}: {}. Error: {:?}", name, msg.message, e);
+                            continue;
+                        }
+                    };
+                    info!("Received message on {}: {} with labels {:?}", name, value, key.labels);
+                    metrics_map.insert(key, value);
+                }
+            });
         }
 
         storage.wait_for_sync().await;
@@ -324,6 +324,9 @@ async fn main() -> anyhow::Result<()> {
         loop {
             tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
         }
+
+        #[allow(unreachable_code)]
+        Ok::<(), anyhow::Error>(())
     });
 
     // Spawn HTTP server for /metrics using hyper 1.7 API
@@ -363,7 +366,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Wait for either signal or tasks
     tokio::select! {
-        _ = mqtt_task => {},
+        r = mqtt_task => panic!("MQTT task failed: {:?}", r),
         _ = http_task => {},
         _ = shutdown => {},
     }
