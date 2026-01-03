@@ -260,6 +260,11 @@ async fn main() -> anyhow::Result<()> {
             .value_fn(|s| if s.parse::<bool>()? { Ok(1.0) } else { Ok(0.0) })
             .build()?,
         TopicBuilder::new()
+            .name("dust_collector_machine_running")
+            .pattern("dust_collector/<device_type> <device_id>/machine_running")
+            .value_fn(|s| if s.parse::<bool>()? { Ok(1.0) } else { Ok(0.0) })
+            .build()?,
+        TopicBuilder::new()
             .name("dust_collector_gate_open")
             .pattern("dust_collector/<device_type> <device_id>/gates/<gate_id>/open")
             .value_fn(|s| if s.parse::<bool>()? { Ok(1.0) } else { Ok(0.0) })
