@@ -244,6 +244,31 @@ async fn main() -> anyhow::Result<()> {
                 }
             })?)
             .build()?,
+        TopicBuilder::new()
+            .name("dust_collector_water_pressure")
+            .pattern("dust_collector/<device_type> <device_id>/water_pressure")
+            .value_fn(|s| if s.parse::<bool>()? { Ok(1.0) } else { Ok(0.0) })
+            .build()?,
+        TopicBuilder::new()
+            .name("dust_collector_dust_level_warning_1")
+            .pattern("dust_collector/<device_type> <device_id>/dust_level_warning_1")
+            .value_fn(|s| if s.parse::<bool>()? { Ok(1.0) } else { Ok(0.0) })
+            .build()?,
+        TopicBuilder::new()
+            .name("dust_collector_dust_level_warning_2")
+            .pattern("dust_collector/<device_type> <device_id>/dust_level_warning_2")
+            .value_fn(|s| if s.parse::<bool>()? { Ok(1.0) } else { Ok(0.0) })
+            .build()?,
+        TopicBuilder::new()
+            .name("dust_collector_gate_open")
+            .pattern("dust_collector/<device_type> <device_id>/gates/<gate_id>/open")
+            .value_fn(|s| if s.parse::<bool>()? { Ok(1.0) } else { Ok(0.0) })
+            .build()?,
+        TopicBuilder::new()
+            .name("dust_collector_gate_ignored")
+            .pattern("dust_collector/<device_type> <device_id>/gates/<gate_id>/ignored")
+            .value_fn(|s| if s.parse::<bool>()? { Ok(1.0) } else { Ok(0.0) })
+            .build()?,
     ];
 
 
